@@ -1,0 +1,4 @@
+#Here we run the analysis for vireo to genotype cells against the known spike-in.
+
+#Use conda env genotyping
+bash run_vireo.sh
