@@ -1,4 +1,4 @@
-#Here I run the same QC measures over the non downsampled data (ie. raw cellranger output).
+#Here I run the same QC measures over the raw cellranger output.
 
 #Use conda env preprocessing
 bsub -o in_runqc1.txt -e err_runqc1 bash run_qualitycontrol.sh
