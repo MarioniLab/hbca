@@ -5,9 +5,9 @@
 
 # #Level2
 # opt <- list()
-# opt$sce_pw <- '/nfs/research/marioni/areed/projects/hbca/cellchat/2022-04-05/scvi_new/brca_epistrimm/output/input/HBCA_postlabelling.rds'
+# opt$sce_pw <- '/nfs/research/marioni/areed/projects/hbca/clustering/2023-06-21/scvi/initial/output/sce/all/sce_all_annotated.rds'
 # opt$celltype_level <- 'level2'
-# opt$out_pwd <- '/nfs/research/marioni/areed/projects/hbca/cellchat/2022-04-05/scvi_new/brca_epistrimm/output'
+# opt$out_pwd <- '/nfs/research/marioni/areed/projects/hbca/cellchat/2023-06-21/scvi/brca_epistrimm/output'
 # opt$workers <- 32
 
 #Load required packages
@@ -54,80 +54,45 @@ opt = parse_args(opt_parser)
 #Load data
 sce <- readRDS(opt$sce_pw)
 
-
-######### TEMPORARY ###########
-
-#Load data and setup
-#df <- read.csv('/nfs/research/marioni/areed/projects/hbca/clustering/2022-04-05/bbknn/round1_labelling/output/adata/metadata_scanpy_HBCA_bbknn_processing_date_2022-09-29.csv')
-df <- read.csv('/nfs/research/marioni/areed/projects/hbca/clustering/2022-04-05/scvi_new/round1_labelling/output/data/metadata_scanpy_HBCA_scVI_processing_date_2022-11-18.csv')
-
-#add Endo labels
-#df$level2[df$level2 ==''] <- df$annot_peng_endothelial[df$level2 =='']
-
-#subset to columns we are interested in
-df_sub <- df[,c("cellID", "patientID", "sampleID", "tissue_condition", "before", "level2")]
-
-
-dim(sce)
-sum(sce$cellID %in% df_sub$cellID)
-
-df_sub <- df_sub[df_sub$cellID %in% sce$cellID,]
-df_sub <- df_sub[order(match(df_sub$cellID, sce$cellID)),]
-level2_labels <- df_sub$level2
-
-sum(sce$cellID == df_sub$cellID)
-
-sce$level2 <- level2_labels
 sce$level2[(sce$level1 %in% c("Lymphoid", "Myeloid"))] <- sce$level1[(sce$level1 %in% c("Lymphoid", "Myeloid"))]
 
-# celltype_order <- c("LP1", "LP2", "LP3", "LP4", "LP5", "HS1", "HS2", "HS3", "HS4", "BSL1", "BSL2", "BSL3", "BSL4", 
-#                     "FB1", "FB2", "FB3", "FB4", "VM1", "VM2", "VM3", "VM4", "VM5", 
-#                     "Angiogenic tip", "Arterial endo", "Cap endo", "CAVIN2-hi venous endo", "Venous endo", 
-#                     "CAVIN2-hi lymphatic endo", "CXCL8-hi lymphatic endo",
-#                     "Lymphoid", "Myeloid")
-celltype_order <- c("LP1", "LP2", "LP3", "LP4", "LP proliferating", "HS1", "HS2", "HS3", "HS4", "BSL1", "BSL2", 
-                    "Other epithelial (1)", "Other epithelial (2)",
-                    "FB1", "FB2", "FB3", "FB4", "FB5", "VM1", "VM2", "VM3", "VM4", "VM5", 
-                    "EC venous", "EC capillary", "EC arterial", "EC angiogenic tip", "LEC1", "LEC2",
-                    "Lymphoid", "Myeloid")
-
-
-#WHY are there cells missing labels!! Doublets?
-
-sce <- sce[, sce$level2 %in% celltype_order]
-# sce <- sce[,sce$level2 %in% c("BSL1", "BSL2", "BSL3", "BSL4")]
-
-#sce$level2 <- factor(sce$level2, levels = celltype_order)
-sce$level2 <- as.character(sce$level2)
-######### TEMPORARY ###########
-
+print(table(sce$level2))
 
 #fix rownames (cellchat fails without this!)
 rownames(sce) <- rowData(sce)$X
 
 #Subset data
-celltypes_to_analyse <- c('LP1', 'LP2', 'LP3', 'LP4', 'HS1', 'HS2', 'HS3', 'HS4', 'BSL1', 'BSL2', 
-                          'FB1', 'FB2', 'FB3', 'FB4', 'FB5', 'VM1', 'VM2', 'VM3', 'VM4', 'VM5', 
-                          'EC venous', 'EC capillary', 'EC arterial', 'EC angiogenic tip', "LEC1", "LEC2",
+celltypes_to_analyse <- c("LASP1", "LASP2", "LASP3", "LASP4",
+                          "LHS1", "LHS2", "LHS3",
+                          "BMYO1", "BMYO2", 
+                          "FB1", "FB2", "FB3", "FB4",
+                          "PV1", "PV2", "PV3", "PV4", "PV5",
+                          "VEV", "VEC", "VEA","VEAT", 
+                          "LE1", "LE2",
                           'Lymphoid', 'Myeloid')
 sce <- sce[, colData(sce)[,opt$celltype_level] %in% celltypes_to_analyse]
 sce$CellChatGroup <- factor(colData(sce)[,opt$celltype_level], 
                             levels = celltypes_to_analyse)
+
+print(table(sce$CellChatGroup))
+print(sum(is.na(sce$CellChatGroup)))
+
+
 
 sce.sub.wt <- sce[, sce$tissue_condition == 'Mammoplasty WT']
 sce.sub.brca1 <- sce[, sce$tissue_condition == 'Mastectomy BRCA1']
 sce.sub.brca2 <- sce[, sce$tissue_condition == 'Mastectomy BRCA2']
 
 #colours
-level2_colour_dictionary = c('LP1' = "#DA80DA", 'LP2' = "#815481", 'LP3' = "#C040C0", 'LP4' = "#E1AFE1", 
-                             'HS1' = "#EDABB9", 'HS2' = "#EB5C79", 'HS3' = "#A06A75", 'HS4' = "#C00028",
-                             'BSL1' = "#EB675E", 'BSL2' = "#A23E36",
-                             'FB1' = "#DFA38A", 'FB2' = "#8C3612", 'FB3' = "#623623", 'FB4' = "#916350", 'FB5' = "#DAC3C3",
-                             'VM1' = "#F8770B", 'VM2' = "#E09E3A", 'VM3' = "#CD7225", 'VM4' = "#FFC990", 'VM5' = "#AC5812",
-                             'EC venous' = "#FEE083", 'EC capillary' = "#897538", 'EC arterial' = "#E7B419", 'EC angiogenic tip' = "#BCA048",
-                             'LEC1' = "#6F8BE2", 'LEC2' = "#3053BC",
-                             "Lymphoid" = '#9FC5E8', 
-                             "Myeloid" = '#AAB256') 
+level2_colour_dictionary = c('LASP1'= "#DA80DA", 'LASP2'= "#815481", 'LASP3'= "#C040C0", 'LASP4'= "#E1AFE1",
+                             'LHS1'= "#EDABB9", 'LHS2'= "#EB5C79", 'LHS3'= "#A06A75",
+                             'BMYO1'= "#EB675E", 'BMYO2'= "#A23E36",
+                             'FB1'= "#DFA38A", 'FB2'= "#8C3612", 'FB3'= "#623623", 'FB4'= "#916350",
+                             'PV1'= "#F8770B", 'PV2'= "#E09E3A", 'PV3'= "#CD7225", 'PV4'= "#FFC990", 'PV5'= "#AC5812",
+                             'VEV'= "#FEE083", 'VEC'= "#897538", 'VEA'= "#E7B419", 'VEAT'= "#BCA048",
+                             'LE1'= "#6F8BE2", 'LE2'= "#3053BC",
+                             "Lymphoid" = '#AAB256', 
+                             "Myeloid" = '#9FC5E8') 
 
 
 #Create CellChat Object of each dataset before merging

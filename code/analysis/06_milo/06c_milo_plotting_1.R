@@ -1,7 +1,11 @@
-#! make plots for milo analysis. Join ST (sample_types)
-#This time set up to use the same neighborhoods for all AR vs HR tests. 
-#scVI new
+#R
 
+#Make basic plots for milo analysis
+
+#Use the same neighborhoods for all AR vs HR tests
+#scVI embedding
+
+#libraries
 suppressMessages(library(scran))
 suppressMessages(library(scater))
 suppressMessages(library(miloR))
@@ -15,18 +19,19 @@ suppressMessages(library(optparse))
 suppressMessages(library(MASS))
 suppressMessages(library(ggrastr))
 
-#example input
+# #example options (testing)
+
 # #Epi
 # opt <- list()
-# opt$input_path <- '/nfs/research/marioni/areed/projects/hbca/milo/2022-04-05/scvi_new/epi_2/output/prop0.3k50'
+# opt$input_path <- '/nfs/research/marioni/areed/projects/hbca/milo/2023-06-21/scvi/epi/output/prop0.3k50'
 
 # #Str
 # opt <- list()
-# opt$input_path <- '/nfs/research/marioni/areed/projects/hbca/milo/2022-04-05/scvi_new/str_2/output/prop0.3k50'
+# opt$input_path <- '/nfs/research/marioni/areed/projects/hbca/milo/2023-06-21/scvi/str/output/prop0.3k50'
 
 # #Imm
 # opt <- list()
-# opt$input_path <- '/nfs/research/marioni/areed/projects/hbca/milo/2022-04-05/scvi_new/imm_2/output/prop0.3k50'
+# opt$input_path <- '/nfs/research/marioni/areed/projects/hbca/milo/2023-06-21/scvi/imm/output/prop0.3k50'
 
 ## options
 option_list = list(make_option(c('--input_path'),
@@ -40,11 +45,6 @@ opt = parse_args(opt_parser)
 #Functions
 plot_milo <- function(milo, da_out, plot_pwd, block_var, sample_tp){
   milo <- edited.buildNhoodGraph(milo, overlap=20) #20 overlap reduced nhood connection overplotting
-  
-  #Tried this but didn't appear to improve plot (previously old scVI).
-  #restrict da_out LFC's to range [-3,3]
-  # da_out$logFC[da_out$logFC > 3] <- 3
-  # da_out$logFC[da_out$logFC < -3] <- -3
   
   #make plots
   cells_to_plot <- (milo$milo_test != 'NA') & !is.na(milo$milo_test)
@@ -85,19 +85,12 @@ plot_milo <- function(milo, da_out, plot_pwd, block_var, sample_tp){
   dev.off()
   
   #beeswarm plot
-  da_out <- annotateNhoods(milo, da_out, coldata_col = "level1")
   da_out <- annotateNhoods(milo, da_out, coldata_col = "level2")
   if (sum(da_out$SpatialFDR < 0.1) > 0) {
-    pdf(paste0(plot_pwd, 'beeswarm_level1-block_', block_var, '-', sample_tp, '.pdf'), width=12, height = 8)
-    print(plotDAbeeswarm(da_out, group.by = "level1"))
-    dev.off()
     pdf(paste0(plot_pwd, 'beeswarm_level2-block_', block_var, '-', sample_tp, '.pdf'), width=12, height = 8)
     print(plotDAbeeswarm(da_out, group.by = "level2"))
     dev.off()
   } else {
-    pdf(paste0(plot_pwd, 'beeswarm_level1-block_', block_var, '-', sample_tp, '_alpha=1.pdf'), width=12, height = 8)
-    print(plotDAbeeswarm(da_out, group.by = "level1", alpha=1))
-    dev.off()
     pdf(paste0(plot_pwd, 'beeswarm_level2-block_', block_var, '-', sample_tp, '_alpha=1.pdf'), width=12, height = 8)
     print(plotDAbeeswarm(da_out, group.by = "level2", alpha=1))
     dev.off()
@@ -154,24 +147,43 @@ edited.buildNhoodGraph <- function(x, overlap=1){
 
 ## Analysis
 
-prefix <- opt$input_path 
 
-for (test_var in c('WT_BRCA1PM', 'WT_BRCA2PM')){
-  for (block_var in c('parity_age')){
-    print('New round of plotting:')
+##choose k and prop with optparse
+
+#load Data
+prefix <- opt$input_path
+
+
+
+for (test_var in c('WT_BRCA1PM', 'WT_BRCA2PM', 'patient_age', 'parity')){
+  for (block_var in c('parity', 'patient_age', 'parity_age')){ 
+    print('New round of testing:')
     print(test_var)
     print(block_var)
     
-    if (block_var %in% c('none', 'patient_age')){
+    if (block_var %in% c('none')){
       block_var_category <- 'none'
     } else {
       block_var_category <- 'parity'
     }
     
-    milo <- readRDS(paste0(prefix, '/milo_objects/epi_nghd_', block_var_category, '.rds'))
+    #skip if test and block are not testable
+    if (test_var == block_var) {
+      next
+    } else if ((test_var %in% c('patient_age', 'parity')) & (block_var == 'parity_age')) {
+      next
+    } else if ((test_var %in% c('WT_BRCA1PM', 'WT_BRCA2PM')) & !(block_var %in% c('parity_age'))){
+      next
+    }
+    
+    if (test_var %in% c('WT_BRCA1PM', 'WT_BRCA2PM')) {
+      milo <- readRDS(paste0(prefix, '/milo_objects/HR_nghd_', block_var_category, '.rds'))
+    } else {
+      milo <- readRDS(paste0(prefix, '/milo_objects/AR_nghd_', block_var_category, '.rds'))
+    } 
     
     
-    #Plotting
+    # Plotting
     
     #test_var meta
     if (test_var == 'WT_BRCA1PM') {
@@ -182,17 +194,32 @@ for (test_var in c('WT_BRCA1PM', 'WT_BRCA2PM')){
       milo$milo_test <- 'NA'
       milo$milo_test[milo$tissue_condition %in% c('Mammoplasty WT')] <- 'Mammoplasty WT'
       milo$milo_test[milo$tissue_condition %in% c( 'Mastectomy BRCA2')] <- 'Mastectomy BRCA2'
-    } 
-    
+    } else if (test_var == 'patient_age') {
+      milo <- milo[,milo$tissue_condition %in% c('Mammoplasty WT')]
+      milo$milo_test <- as.double(milo$patient_age)
+    } else if (test_var == 'parity') {
+      milo <- milo[,milo$tissue_condition %in% c('Mammoplasty WT')]
+      milo <- milo[, milo$parity != 'unknown']
+      milo$milo_test <- milo$parity != '0'
+    } else {
+      print(paste0('Incorrect input: test_var = ', test_var))
+      next
+    }
     #block_var meta
     if (block_var == 'none') {
       milo$milo_block <- 'none'
+    } else if (block_var == 'patient_age') {
+      milo$milo_block <- milo$patient_age
+    } else if (block_var == 'parity') {
+      milo <- milo[, milo$parity %in% c('0','1','2','3','4')]
+      milo$milo_block[milo$parity %in% c('1','2','3','4')] <- 'Parous'
+      milo$milo_block[milo$parity %in% c('0')] <- 'Nulliparous'
     } else if (block_var == 'parity_age') {
       milo <- milo[, milo$parity %in% c('0','1','2','3','4')]
       milo$milo_block1[milo$parity %in% c('1','2','3','4')] <- 'Parous'
       milo$milo_block1[milo$parity %in% c('0')] <- 'Nulliparous'
       milo$milo_block2 <- milo$patient_age
-    } else {
+    }else {
       print(paste0('Incorrect input: block_var = ', block_var))
       next
     }
@@ -206,15 +233,3 @@ for (test_var in c('WT_BRCA1PM', 'WT_BRCA2PM')){
               sample_tp = 'all')
   }
 }
-
-
-
-
-
-
-
-
-
-
-
-

@@ -5,9 +5,8 @@
 
 # #Level2
 # opt <- list()
-# opt$sce_pw <- '/nfs/research/marioni/areed/projects/hbca/cellchat/2022-04-05/scvi_new/brca_epistrimm/output/input/HBCA_postlabelling.rds'
 # opt$celltype_level <- 'level2'
-# opt$out_pwd <- '/nfs/research/marioni/areed/projects/hbca/cellchat/2022-04-05/scvi_new/brca_epistrimm/output'
+# opt$out_pwd <- '/nfs/research/marioni/areed/projects/hbca/cellchat/2023-06-21/scvi/brca_epistrimm/output'
 # opt$workers <- 32
 
 #Load required packages
@@ -54,33 +53,32 @@ cellchat.wt_sub2 <- readRDS(paste0(opt$out_pwd, '/rds/cellchat_wt_sub2_setup.rds
 cellchat.brca1 <- readRDS(paste0(opt$out_pwd, '/rds/cellchat_brca1_setup.rds'))
 cellchat.brca2 <- readRDS(paste0(opt$out_pwd, '/rds/cellchat_brca2_setup.rds'))
 
-#need this for later plots
-# cellchat.wt_sub1 <- netAnalysis_computeCentrality(cellchat.wt_sub1, slot.name = "net")
-# cellchat.wt_sub2 <- netAnalysis_computeCentrality(cellchat.wt_sub1, slot.name = "net")
-# cellchat.brca1 <- netAnalysis_computeCentrality(cellchat.brca1, slot.name = "net")
-# cellchat.brca2 <- netAnalysis_computeCentrality(cellchat.brca2, slot.name = "net")
+#should be done already. 
 # cellchat.wt_sub1 <- netAnalysis_computeCentrality(cellchat.wt_sub1, slot.name = "netP")
 # cellchat.wt_sub2 <- netAnalysis_computeCentrality(cellchat.wt_sub1, slot.name = "netP")
 # cellchat.brca1 <- netAnalysis_computeCentrality(cellchat.brca1, slot.name = "netP")
 # cellchat.brca2 <- netAnalysis_computeCentrality(cellchat.brca2, slot.name = "netP")
 
-wt_brca1.list <- list('wt' = cellchat.wt_sub1, 'brca1' = cellchat.brca1)
-wt_brca2.list <- list('wt' = cellchat.wt_sub2, 'brca2' = cellchat.brca2)
+wt_brca1.list <- list('wt' = cellchat.list[['wt_sub1']], 'brca1' = cellchat.list[['brca1']])
+wt_brca2.list <- list('wt' = cellchat.list[['wt_sub2']], 'brca2' = cellchat.list[['brca2']])
 
 cellchat.wt_brca1 <- readRDS(paste0(opt$out_pwd, '/rds/cellchat_merged_wtbrca1.rds'))
 cellchat.wt_brca2 <- readRDS(paste0(opt$out_pwd, '/rds/cellchat_merged_wtbrca2.rds'))
+
+
 cellchat.list <- list('wt_brca1' = cellchat.wt_brca1, 'wt_brca2' = cellchat.wt_brca2)
 
 #colours
-level2_colour_dictionary = c('LP1' = "#DA80DA", 'LP2' = "#815481", 'LP3' = "#C040C0", 'LP4' = "#E1AFE1", 
-                             'HS1' = "#EDABB9", 'HS2' = "#EB5C79", 'HS3' = "#A06A75", 'HS4' = "#C00028",
-                             'BSL1' = "#EB675E", 'BSL2' = "#A23E36",
-                             'FB1' = "#DFA38A", 'FB2' = "#8C3612", 'FB3' = "#623623", 'FB4' = "#916350", 'FB5' = "#DAC3C3",
-                             'VM1' = "#F8770B", 'VM2' = "#E09E3A", 'VM3' = "#CD7225", 'VM4' = "#FFC990", 'VM5' = "#AC5812",
-                             'EC venous' = "#FEE083", 'EC capillary' = "#897538", 'EC arterial' = "#E7B419", 'EC angiogenic tip' = "#BCA048",
-                             'LEC1' = "#6F8BE2", 'LEC2' = "#3053BC",
-                             "Lymphoid" = '#9FC5E8', 
-                             "Myeloid" = '#AAB256') 
+level2_colour_dictionary = c('LASP1'= "#DA80DA", 'LASP2'= "#815481", 'LASP3'= "#C040C0", 'LASP4'= "#E1AFE1",
+                             'LHS1'= "#EDABB9", 'LHS2'= "#EB5C79", 'LHS3'= "#A06A75",
+                             'BMYO1'= "#EB675E", 'BMYO2'= "#A23E36",
+                             'FB1'= "#DFA38A", 'FB2'= "#8C3612", 'FB3'= "#623623", 'FB4'= "#916350",
+                             'PV1'= "#F8770B", 'PV2'= "#E09E3A", 'PV3'= "#CD7225", 'PV4'= "#FFC990", 'PV5'= "#AC5812",
+                             'VEV'= "#FEE083", 'VEC'= "#897538", 'VEA'= "#E7B419", 'VEAT'= "#BCA048",
+                             'LE1'= "#6F8BE2", 'LE2'= "#3053BC",
+                             "Lymphoid" = '#AAB256', 
+                             "Myeloid" = '#9FC5E8') 
+
 
 for (test_type in c('wt_brca1','wt_brca2')){
   print(test_type)
@@ -196,16 +194,16 @@ for (list_name in c('wt_brca1','wt_brca2')) {
 
 
 #Pathways most incoming to 'EC angiogenesis'
-ec_angio_pathways <- c('SEMA3', 'SEMA6', 'VEGF', 'PECAM1', 'CALCR', 'CD46', 'ESAM', 'ANGPT', 'VISFATIN', 'ncWNT', 'ANGPTL') #removed TNF, CD96, CDH5 for ncWNT and ANGPTL
+ec_angio_pathways <- c('SEMA3', 'SEMA6', 'VEGF', 'PECAM1', 'CALCR', 'CD46', 'ESAM', 'ANGPT', 'ANGPTL') #removed TNF, CD96, CDH5 for ncWNT and ANGPTL #For revision removed 'VISFATIN', 'ncWNT', 
 
-
-ht1 <- netAnalysis_signalingRole_heatmap(cellchat,
+#look specifically in the brca2 donors
+ht1 <- netAnalysis_signalingRole_heatmap(cellchat.brca2,
                                          signaling = ec_angio_pathways,
                                          color.use = level2_colour_dictionary,
                                          pattern = "outgoing", 
                                          width = 10,
                                          height = 16)
-ht2 <- netAnalysis_signalingRole_heatmap(cellchat,
+ht2 <- netAnalysis_signalingRole_heatmap(cellchat.brca2,
                                          signaling = ec_angio_pathways,
                                          color.use = level2_colour_dictionary,
                                          pattern = "incoming", 
@@ -228,14 +226,14 @@ num.link <- sapply(wt_brca1_brca2.list , function(x) {rowSums(x@net$count) + col
 weight.MinMax <- c(min(num.link), max(num.link)) # control the dot size in the different datasets
 gg <- list()
 for (i in 1:length(wt_brca1_brca2.list )) {
-  gg[[i]] <- netAnalysis_signalingRole_scatter(wt_brca1_brca2.list [[i]], 
+  gg[[i]] <- netAnalysis_signalingRole_scatter(wt_brca1_brca2.list[[i]], 
                                                title = names(wt_brca1_brca2.list )[i],
                                                color.use = level2_colour_dictionary,
                                                weight.MinMax = weight.MinMax)
 }
 
 dir.create(paste0(opt$out_pwd, '/wt_brca1_brca2/overview_plots/'), recursive = TRUE, showWarnings = FALSE)
-pdf(paste0(opt$out_pwd, '/wt_brca1_brca2/overview_plots/scatter_signalling_role_', opt$celltype_level, '_sub', opt$cell_number, '.pdf'))
+pdf(paste0(opt$out_pwd, '/wt_brca1_brca2/overview_plots/scatter_signalling_role_', opt$celltype_level, '_sub', opt$cell_number, '.pdf'), width = 15, height = 10)
 print(patchwork::wrap_plots(plots = gg))
 dev.off()
 

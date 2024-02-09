@@ -1,5 +1,5 @@
 #! complete differential gene expression testing.
-# C:/Users/44756/OneDrive - University of Cambridge/WTKLAB/Projects/hbca/codon/code/single_cell_gene_expression/dge/scvi_new/test_dge.R
+# C:/Users/44756/OneDrive - University of Cambridge/WTKLAB/Projects/hbca/codon/code/single_cell_gene_expression/dge/scvi_revision/revision_test_dge.R
 
 suppressMessages(library(scran))
 suppressMessages(library(scater))
@@ -14,16 +14,33 @@ suppressMessages(library(optparse))
 
 # #LP
 # opt = list()
-# opt$input_path = '/nfs/research/marioni/areed/projects/hbca/milo/2022-04-05/scvi_new/epi/output/input/input_sce.rds'
-# opt$output_pwd = '/nfs/research/marioni/areed/projects/hbca/dge/2022-04-05/scvi_new/lp/output/'
-# opt$celltype_subset = 'LP1,LP2,LP3,LP4,LP_proliferating' 
+# opt$input_path = '/nfs/research/marioni/areed/projects/hbca/clustering/2023-06-21/scvi/initial/output/sce/epi/sce_epi_annotated.rds'
+# opt$output_pwd = '/nfs/research/marioni/areed/projects/hbca/dge/2023-06-21/scvi/lp/output/'
+# opt$celltype_subset = 'LASP1,LASP2,LASP3,LASP4,LASP5' 
+
+#LHS
+# opt = list()
+# opt$input_path = '/nfs/research/marioni/areed/projects/hbca/clustering/2023-06-21/scvi/initial/output/sce/epi/sce_epi_annotated.rds'
+# opt$output_pwd = '/nfs/research/marioni/areed/projects/hbca/dge/2023-06-21/scvi/hs/output/'
+# opt$celltype_subset = 'LHS1,LHS2,LHS3'
 
 #BSL
 # opt = list()
-# opt$input_path = '/nfs/research/marioni/areed/projects/hbca/milo/2022-04-05/scvi_new/epi/output/input/input_sce.rds'
-# opt$output_pwd = '/nfs/research/marioni/areed/projects/hbca/dge/2022-04-05/scvi_new/bsl/output/'
-# opt$celltype_subset = 'BSL1,BSL2'
+# opt$input_path = '/nfs/research/marioni/areed/projects/hbca/clustering/2023-06-21/scvi/initial/output/sce/epi/sce_epi_annotated.rds'
+# opt$output_pwd = '/nfs/research/marioni/areed/projects/hbca/dge/2023-06-21/scvi/bsl/output/'
+# opt$celltype_subset = 'BMYO1,BMYO2'
 
+#Macro
+# opt = list()
+# opt$input_path = '/nfs/research/marioni/areed/projects/hbca/clustering/2023-06-21/scvi/initial/output/sce/imm/sce_imm_annotated.rds'
+# opt$output_pwd = '/nfs/research/marioni/areed/projects/hbca/dge/2023-06-21/scvi/macro/output/'
+# opt$celltype_subset = 'Macro'
+
+#DC
+# opt = list()
+# opt$input_path = '/nfs/research/marioni/areed/projects/hbca/clustering/2023-06-21/scvi/initial/output/sce/imm/sce_imm_annotated.rds'
+# opt$output_pwd = '/nfs/research/marioni/areed/projects/hbca/dge/2023-06-21/scvi/dc/output/'
+# opt$celltype_subset = 'DC'
 
 ## options
 option_list = list(make_option(c('--input_path'),
@@ -51,41 +68,16 @@ doDGE <- function(summed, dge_pwd, block_var){
   #print(current$ncells)
   #print(table(current$level2,current$sampleID))
   
-  # PREVIOUSLY USED IN MOUSE ATLAS TESTING - not require here?
-  # Remove any samples that are more than two standard deviations below the mean counts 
-  # OR less than 20 counts
-  # for (celltype in unique(current$level2)){
-  #   #want upper 97.5% (of assumed normal distribution) giving the 1.96 sd's.
-  #   threshold <- mean(current$ncells[current$level2 == celltype]) - 1.96 * sd(current$ncells[current$level2 == celltype])
-  #   #need to account for case when sd returns NA due to only one valid cell.
-  #   if (is.na(threshold)){
-  #     threshold <- 0
-  #   }
-  #   current <- current[,((current$ncells > max(threshold, 20)) & (current$level2 == celltype)) | (current$level2 != celltype)] 
+  #OLD - Only consider samples with >5 cells (except for DC which are too rare). Ignore DC as they are too rare in dataset to test. only a few per sample max.
+  # if (opt$celltype_subset != 'DC'){
+  #     current <- current[,(current$ncells > 5)]
   # }
-  
-  #Only consider samples with >5 cells
   current <- current[,(current$ncells > 5)]
   
   #print(table(current$level2,current$sampleID))
   
   #Make DGEList object
   y <- DGEList(counts(current), samples=colData(current))
-  
-  # FROM MICE TESTING NOT NEEDED NOW?
-  # #Remove samples where no comparison can be made across Age
-  # for (celltype in unique(current$level2)){
-  #   temp1 <- sum(y$samples$level2 == celltype & y$samples$dge_test == 0)
-  #   temp2 <- sum(y$samples$level2 == celltype & y$samples$dge_test == 1)
-  #   if ((temp1 == 0) | (temp2 == 0)){
-  #     y <- y[,y$samples$level2 != celltype]
-  #     current <- current[, current$level2 != celltype]
-  #   }
-  # }
-  
-  #current$level2 <- unique(current$level2)
-  #y$samples$level2 <- unique(y$samples$level2)
-  #print(table(unique(current$level2), unique(current$sampleID)))  
   
   if (dim(current)[2] == 0){
     print('Too few cells of this type')
@@ -114,6 +106,7 @@ doDGE <- function(summed, dge_pwd, block_var){
   
   #Removing lowly expressed genes
   keep <- filterByExpr(y, design=design)
+  
   y <- y[keep,]
   
   #Normalize
@@ -152,7 +145,6 @@ doDGE <- function(summed, dge_pwd, block_var){
 
 setup_and_test <- function(summed, test_var, block_var, prefix){
   #set up test_var coldata 
-  #(used similarly to that in milo_statistics_testing_explore.R)
   
   if (test_var == 'parity') {
     summed <- summed[, summed$parity != 'unknown']
@@ -199,7 +191,7 @@ setup_and_test <- function(summed, test_var, block_var, prefix){
   
   #setup block_var coldata
   if (block_var == 'parity') {
-    summed$dge_block <- 'Unk' #I dont think I can just leave the unknown as NA/NULL so I will make them their own category
+    summed$dge_block <- 'Unk' #Make them their own category
     summed$dge_block[summed$parity %in% c('1','2','3','4')] <- 'Parous'
     summed$dge_block[summed$parity %in% c('0')] <- 'Nulliparous'
   } else if (block_var == 'patient_age') {
@@ -207,7 +199,7 @@ setup_and_test <- function(summed, test_var, block_var, prefix){
   } else if (block_var == 'tissue_condition') {
     summed$dge_block <- summed$tissue_condition
   } else if (block_var == 'parity_age') {
-    summed$dge_block1 <- 'Unk' #I dont think I can just leave the unknown as NA/NULL so I will make them their own category
+    summed$dge_block1 <- 'Unk' #Make them their own category
     summed$dge_block1[summed$parity %in% c('1','2','3','4')] <- 'Parous'
     summed$dge_block1[summed$parity %in% c('0')] <- 'Nulliparous'
     summed$dge_block2 <- summed$patient_age
@@ -252,8 +244,8 @@ summed <- aggregateAcrossCells(sce, ids=DataFrame(level2=sce$level2,
                                                   sampleID=sce$sampleID))
 
 #make test/block variable lists to test over
-test_var_list <- list('parity', 'patient_age', 'WT_BRCA1PM', 'BRCA1PM_BRCA1C', 'WT_BRCA2PM', "Menopause_status", "Body_mass_index", 'Smoking_status', "HRT_use", "OCP_use", "Image_scans")
-block_var_list <- list('none', 'parity_age', 'parity', 'patient_age', 'tissue_condition')
+test_var_list <- list('WT_BRCA1PM', 'WT_BRCA2PM')
+block_var_list <- list('parity_age')
 
 #complete tests
 for (test_var in test_var_list){
@@ -261,26 +253,8 @@ for (test_var in test_var_list){
     print('New round of test:')
     print(test_var)
     print(block_var)
-    if (test_var == block_var) {
-      next
-    } else if ((test_var %in% c('parity', 'patient_age')) & (block_var == 'parity_age')) {
-      next
-    } else if ((block_var == 'tissue_condition') & (test_var %in% c('WT_BRCA1PM', 'WT_BRCA1all', 'BRCA1PM_BRCA1C', 'WT_BRCA2PM'))) {
-      next
-    } else if ((block_var != 'none') & (test_var %in% c("Menopause_status", "Body_mass_index", 'Smoking_status', "HRT_use", "OCP_use", "Image_scans"))) { #these have too few patients to consider blocking
-      next
-    } else {
-      print('test = TRUE')
-      setup_and_test(summed = summed, test_var = test_var, block_var = block_var,
-                     prefix = opt$output_pwd)
-    }
+    setup_and_test(summed = summed, test_var = test_var, block_var = block_var,
+                   prefix = opt$output_pwd)
   }
 }
-
-
-#test inputs
-# test_var = 'parity'
-# block_var = 'none'
-# prefix = opt$output_pwd
-# dge_pwd = paste0(prefix, '/dge_testing/', test_var)
 

@@ -1,0 +1,87 @@
+Bootstrap: docker
+From: ubuntu:jammy
+
+
+%post
+    # workaround as update seems to install/update tzdata
+    export DEBIAN_FRONTEND=noninteractive
+    apt-get -y update
+    
+    # configure default locale
+    apt-get install -y locales
+    echo "en_US.UTF-8 UTF-8" >> /etc/locale.gen
+    locale-gen en_US.utf8
+    /usr/sbin/update-locale LANG=en_US.UTF-8
+    export LC_ALL=en_US.UTF-8
+    export LANG=en_US.UTF-8
+    locale-gen en_US.UTF-8
+    apt-get -y install python3-pip
+    apt-get -y install libfftw3-dev python3-tk bison flex
+    apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 51716619E084DAB9 
+    # add the R 4.0 repo from CRAN -- adjust 'focal' to 'groovy' or 'jammy' as needed
+    # for add-repository
+    apt-get -y install software-properties-common
+    add-apt-repository "deb https://cloud.r-project.org/bin/linux/ubuntu jammy-cran40/"
+    apt-get update
+    # VS code server
+    wget -O- https://aka.ms/install-vscode-server/setup.sh | sh
+    # VS code server - code-server browser
+    curl -fsSL https://code-server.dev/install.sh | sh
+    # install R, and various useful things
+    apt-get -y install r-base build-essential xorg-dev libreadline-dev libc6-dev zlib1g-dev libbz2-dev liblzma-dev libcurl4-openssl-dev libcairo2-dev libpango1.0-dev tcl-dev tk-dev openjdk-8-jdk openjdk-8-jre gfortran libffi-dev
+    apt-get install -y libopenblas-dev libopenmpi-dev openmpi-bin openmpi-common openmpi-doc openssh-client openssh-server libssh-dev wget vim git cmake gfortran gcc g++ curl wget autoconf bzip2 libtool libtool-bin
+    apt-get -y install libssl-dev libxml2-dev libcurl4-gnutls-dev
+    apt-get -y install libfreetype6-dev libpng-dev libtiff5-dev libjpeg-dev
+    apt-get -y install libzmq3-dev
+    apt-get -y install libglpk-dev # for igraph
+    # apt-get -y install cython3 # try install via pip instead
+    pip3 install cython 
+    pip3 install numpy
+    pip3 install urllib3
+    pip3 install pybind11
+    pip3 install numba python-igraph louvain leidenalg sklearn jupyter velocyto snakemake pytest fitsne plotly ggplot cmake jupyterlab spatialde rpy2 bbknn scvelo wot pyscenic scirpy scvi-tools harmonypy scrublet
+    pip3 install fastcluster palettable
+    pip3 install scanpy==1.8.2 # 1.9 versions mess up adata compatability with other tools
+    pip3 install metacells
+    pip3 install sorted-nearest
+    # Dana Pe'er's metacell (2021-12-01 not on pip yet: pip3 install SEACells)
+    pip3 install pyrle
+    pip3 install git+https://github.com/settylab/Palantir@removeTSNE
+    git clone https://github.com/dpeerlab/SEACells.git
+    cd SEACells
+    python3 setup.py install
+    cd .. && rm -r SEACells
+    R -e 'install.packages(c("pkgdown", "BiocManager", "devtools"))'
+    R -e 'install.packages(c("pbdZMQ", "repr"))'
+    R -e 'install.packages(c("IRkernel", "IRdisplay"))'
+    R -e 'IRkernel::installspec(user = FALSE)'
+    R -e 'devtools::install_github("velocyto-team/velocyto.R")'
+    R -e 'install.packages(c("tidyverse","Seurat","vcfR","igraph","car","ggpubr","rJava", "cowplot", "patchwork"))'
+    R -e 'install.packages(c("workflowr", "reticulate"))'
+    R -e 'BiocManager::install(c("edgeR","DESeq2","BiocParallel","scater","scran","SC3","monocle","destiny","pcaMethods","zinbwave","GenomicAlignments","RSAMtools","M3Drop","DropletUtils","switchde","biomaRt","batchelor","Matrix.utils","mclust")); devtools::install_github("im3sanger/dndscv"); devtools::install_github("immunogenomics/harmony"); devtools::install_github("cole-trapnell-lab/leidenbase"); devtools::install_github("cole-trapnell-lab/monocle3")'
+    R -e 'BiocManager::install(c("multtest"))'
+    apt-get install -y libcurl4-openssl-dev libssl-dev libjq-dev libprotobuf-dev protobuf-compiler make libgeos-dev libudunits2-dev libgdal-dev gdal-bin libproj-dev libv8-dev
+    R -e 'install.packages(c("rgeos", "SoupX"))'
+    Rscript -e 'BiocManager::install(c("miloR"))'
+    # SuperCell
+    R -e 'install.packages(c("remotes", "RANN", "WeightedCluster", "corpcor", "weights", "Hmisc", "Matrix", "irlba"))'
+    R -e 'remotes::install_github("GfellerLab/SuperCell")'
+    # Zellkonverter
+    R -e 'BiocManager::install("zellkonverter")'
+    R -e 'library(zellkonverter)
+          example_h5ad <- system.file("extdata", "krumsiek11.h5ad",
+                                      package = "zellkonverter")
+          readH5AD(example_h5ad)'
+    R -e 'install.packages("rmdformats")'
+    R -e 'remotes::install_github("mojaveazure/seurat-disk")'
+    #many things of general utility
+    apt-get -y install samtools bcftools bedtools htop parallel sshfs
+    apt-get clean
+
+%environment
+    export LC_ALL=en_US.UTF-8
+    export LANG=en_US.UTF-8
+    # defaults write org.R-project.R force.LANG en_US.UTF-8
+
+%runscript
+  #  fortune | cowsay | lolcat
